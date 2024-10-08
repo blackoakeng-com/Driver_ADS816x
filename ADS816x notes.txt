@@ -1,0 +1,101 @@
+SPI mode SPI-00
+  SCLK low @ /CS fall
+  Capture @ SCLK rise
+  SDI_MODE[1:0] = SDO_MODE[1:0] = 00h	See Figure 51
+  This is wakeup default.
+
+This is an MVP driver.
+Manual mode single conversion, #7.4.1.1, pg 31
+
+Signals on board
+ 	ADCxAlert.  Programable. [Unneeded]
+	ADCxReady.  If /CS H shows device conv status, L while busy.
+
+How do you start a conversion?
+	"The device starts converting the active input channel on the rising edge of /CS."  #3
+	This is with the selected chan.
+
+A valid register read/write operation (pg42) requires 24 SCLKs within a frame.
+Can read conv data with 16 SCLKs.
+
+------ Commands ------------------------------
+
+	[23:19]	[18:08]	     [07:00]	
+	-------	-------	      -----
+NOP	 00000	00000000000   00000000		No op - can use to read back conv
+WR_REG	 00001	11 bit addr   8 bit data	Write to reg
+RD_REG	 00010	11 bit addr   00000000		Read from reg
+SET_BITS 00011	11 bit addr   8 bit unmasked bits to set
+CLR_BITS 00100	11 bit addr   8 bit unmasked bits to clr
+
+Register read requires two frames.  Second frame use dummy MOSI.
+
+
+------ Registers ------------------------------
+
+		Addr	
+
+REG_ACCESS	00h	Enable rd/wr access to regs
+	Must write AAh to this to allow further writes. Anything else disables.
+
+PD_CNTL		04h	Ena/disa control for reference, ref buffer, REFby2 buffer, ADC
+	Selectively turn off power to modules [Unneeded]
+
+SDI_CNTL	08h	Protocol selection, default is SPI-00
+SDO_CNTL1	0Ch	SDO protocol [unneeded]
+	Defaults: Length out data set by DATA_OUT_FORMAT is DATA_CNTL reg.
+		Left aligned data. If data frame is 32 b, will have 0s appended.
+		Data bits output only on SDO-0.	
+
+SDO_CNTL2	0Dh	SDO data rate [unneeded]
+SDO_CNTL3	0Eh	SDO RESERVED
+SDO_CNTL4	0Fh	Config for SEQST pin when not using SDO-1 mode [unneeded]
+DATA_CNTL	10h	Output data word config
+	If set bit 0 H will output A6h for debug.
+	Defaults: Output data bits only, no addr.
+		
+		
+
+PARITY_CNTL	11h	Parity config
+
+------ Calibration regs #7.6.2 -----------------------
+
+OFST_CAL	18h
+REF_MRG1	19h
+REF_MRG2	1Ah
+REFby2_MRG	1Bh
+
+
+------ Analog Input Config regs #7.6.3 -----------------------
+
+AIN_CFG		24h
+	Defaults [00]: AIN0 & AIN1 (et seq) are two separate chans. MUXOUT-M pin is connected to AIN_COM.
+
+COM_CFG		27h
+	Default: Bit0 = 0, all chans single ended. Connect AIN-COM pin to agnd.
+
+
+------ Chan Seq Config regs #7.6.4 -----------------------
+
+DEVICE_CFG	1Ch	MUX seq config & device status bits
+	Default [1:0] = 00 = Manual mode
+	Bit3 = Alert status. Mirrors Alert pin.
+	Bit2 = Error status, 1 = config error
+
+CHANNEL_ID	1Dh	Manual mode chan select [**]
+	Use [2:0]
+
+SEQ_START	1Eh	Start mux seq
+
+SEQ_STOP	1Fh	Stop mux seq
+
+ON_THE_FLY_CFG	2Ah	[Unneeded]
+
+AUTO_SEQ_CFG1	80h	Chan sel reg for auto seq mode [unneeded]
+
+AUTO_SEQ_CFG2	82h	Chan repeat reg for auto seq mode [unneeded]
+
+
+------ Custom Chan Seq Mode regs #7.6.4.8 -----------------------
+		88h : ABh	Unused
+
