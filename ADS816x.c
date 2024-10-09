@@ -16,7 +16,7 @@
  */
 
 #include <xc.h>
-#include "Advant.h"
+#include "BlueJay.h"
 #include "spi.h"
 #include "ADS816x.h"
 #include "Timers.h"
